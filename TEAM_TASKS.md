@@ -4,64 +4,55 @@
 
 | Member | Role | Focus Area |
 |--------|------|------------|
-| **Member A** | Infrastructure Lead | Core server, NIO, configuration, networking |
-| **Member B** | Protocol Lead | HTTP parsing, routing, response building |
-| **Member C** | Features Lead | CGI, sessions, cookies, file handling, error pages |
+| **Member A** | Backend Lead | Core server, NIO, HTTP protocol, configuration, routing |
+| **Member B** | Features Lead | CGI, sessions, cookies, file handling, error pages, uploads |
 
 ---
 
 ## Task Distribution
 
-### Member A - Infrastructure Lead
+### Member A - Backend Lead
 
 | Priority | Task | Description | Dependencies |
 |----------|------|-------------|--------------|
 | 1 | Project Structure | Create directories: `src/`, `error_pages/`, `config.json` | None |
 | 2 | ConfigLoader | Parse JSON config (hosts, ports, routes, limits) | Task A1 |
-| 3 | Core Server (NIO) | Implement `Selector`-based event loop, `ServerSocketChannel` | Task A2 |
-| 4 | Multiple Servers | Support multiple ports/virtual hosts from config | Task A3 |
-| 5 | Timeout Handling | Implement request timeout mechanism | Task A3 |
+| 3 | HTTP Request Parser | Parse request line, headers, body, chunked encoding | None |
+| 4 | HTTP Response Builder | Build HTTP/1.1 responses with status codes & headers | None |
+| 5 | Core Server (NIO) | Implement `Selector`-based event loop, `ServerSocketChannel` | Tasks A2, A3, A4 |
+| 6 | Router | Route matching, methods validation, redirections | Tasks A3, A4, A5 |
+| 7 | Multiple Servers | Support multiple ports/virtual hosts from config | Task A5 |
+| 8 | Static File Serving | Serve files, index files, directory listing | Task A6 |
+| 9 | Timeout Handling | Implement request timeout mechanism | Task A5 |
 
 **Files to create:**
 - `src/Main.java`
 - `src/Server.java`
 - `src/ConfigLoader.java`
+- `src/HttpRequest.java`
+- `src/HttpResponse.java`
+- `src/Router.java`
 - `config.json`
 
 ---
 
-### Member B - Protocol Lead
-
-| Priority | Task | Description | Dependencies |
-|----------|------|-------------|--------------|
-| 1 | HTTP Request Parser | Parse request line, headers, body, chunked encoding | None |
-| 2 | HTTP Response Builder | Build HTTP/1.1 responses with status codes & headers | None |
-| 3 | Router | Route matching, methods validation, redirections | Tasks B1, B2 |
-| 4 | Static File Serving | Serve files, index files, directory listing | Task B3 |
-| 5 | File Uploads | Handle `multipart/form-data`, body size limits | Tasks B1, B3 |
-
-**Files to create:**
-- `src/HttpRequest.java`
-- `src/HttpResponse.java`
-- `src/Router.java`
-
----
-
-### Member C - Features Lead
+### Member B - Features Lead
 
 | Priority | Task | Description | Dependencies |
 |----------|------|-------------|--------------|
 | 1 | Cookie Utilities | Parse and build HTTP cookies | None |
-| 2 | Session Management | Session creation, storage, expiration | Task C1 |
+| 2 | Session Management | Session creation, storage, expiration | Task B1 |
 | 3 | Error Pages | Create HTML pages + error response handler | None |
 | 4 | CGI Handler | Execute `.py` scripts via `ProcessBuilder`, `PATH_INFO` | None |
-| 5 | Integration & Testing | Connect all components, stress test with siege | All tasks |
+| 5 | File Uploads | Handle `multipart/form-data`, body size limits | Tasks B1, A3 |
+| 6 | Integration & Testing | Connect all components, stress test with siege | All tasks |
 
 **Files to create:**
 - `src/utils/Cookie.java`
 - `src/utils/Session.java`
 - `src/ErrorHandler.java`
 - `src/CGIHandler.java`
+- `src/FileUploadHandler.java`
 - `error_pages/400.html`
 - `error_pages/403.html`
 - `error_pages/404.html`
@@ -75,25 +66,22 @@
 
 ```
 Week 1: Foundation (Parallel Work)
-├── Member A: Project Structure → ConfigLoader → Start Server
-├── Member B: HTTP Request Parser → HTTP Response Builder
-└── Member C: Cookie Utils → Session Management → Error Pages
+├── Member A: Project Structure → ConfigLoader → HTTP Parser → HTTP Response
+└── Member B: Cookie Utils → Session Management → Error Pages
 
 SYNC POINT 1: Integration meeting - agree on interfaces
 ─────────────────────────────────────────────────────────
 
 Week 2: Core Features (Parallel Work)
-├── Member A: Complete Server (NIO) → Multiple Servers
-├── Member B: Router → Static File Serving
-└── Member C: CGI Handler → Error Handler integration
+├── Member A: Server (NIO) → Router → Multiple Servers
+└── Member B: CGI Handler → Error Handler integration → File Uploads
 
 SYNC POINT 2: Integration meeting - connect components
 ─────────────────────────────────────────────────────────
 
 Week 3: Integration & Polish
-├── Member A: Timeout Handling → Bug fixes
-├── Member B: File Uploads → Bug fixes
-└── Member C: Full Integration → Stress Testing (siege)
+├── Member A: Static File Serving → Timeout Handling → Bug fixes
+└── Member B: Full Integration → Stress Testing (siege) → Bug fixes
 
 SYNC POINT 3: Final testing - 99.5% availability target
 ```
@@ -104,7 +92,7 @@ SYNC POINT 3: Final testing - 99.5% availability target
 
 Define these interfaces early so team members can work independently:
 
-### 1. HttpRequest Interface (Member B owns)
+### 1. HttpRequest Interface (Member A owns)
 ```java
 public class HttpRequest {
     String getMethod();           // GET, POST, DELETE
@@ -116,7 +104,7 @@ public class HttpRequest {
 }
 ```
 
-### 2. HttpResponse Interface (Member B owns)
+### 2. HttpResponse Interface (Member A owns)
 ```java
 public class HttpResponse {
     void setStatus(int code, String message);
@@ -127,7 +115,7 @@ public class HttpResponse {
 }
 ```
 
-### 3. Route Interface (Member B owns)
+### 3. Route Interface (Member A owns)
 ```java
 public class Route {
     String path;
@@ -152,7 +140,7 @@ public class Config {
 }
 ```
 
-### 5. Session Interface (Member C owns)
+### 5. Session Interface (Member B owns)
 ```java
 public class Session {
     String getId();
@@ -172,51 +160,54 @@ public class Session {
 ### Git Workflow
 ```
 main
-├── feature/infrastructure    (Member A)
-├── feature/http-protocol     (Member B)
-└── feature/features          (Member C)
+├── feature/backend     (Member A)
+└── feature/features    (Member B)
 ```
 
 ### Merge Order
-1. Member A merges `infrastructure` to `main` first (foundation)
-2. Member B merges `http-protocol` to `main` second
-3. Member C merges `features` to `main` last (depends on both)
+1. Member A merges `backend` to `main` first (foundation)
+2. Member B merges `features` to `main` second (depends on backend)
 
 ---
 
 ## Critical Dependencies Map
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│                        MEMBER A                                  │
-│  ┌──────────┐    ┌──────────┐    ┌────────┐    ┌──────────┐    │
-│  │ Project  │───▶│  Config  │───▶│ Server │───▶│ Multiple │    │
-│  │ Structure│    │  Loader  │    │  (NIO) │    │ Servers  │    │
-│  └──────────┘    └────┬─────┘    └───┬────┘    └──────────┘    │
-│                       │              │                          │
-└───────────────────────┼──────────────┼──────────────────────────┘
-                        │              │
-                        ▼              ▼
-┌───────────────────────────────────────────────────────────────────┐
-│                        MEMBER B                                    │
-│  ┌──────────┐    ┌──────────┐    ┌────────┐    ┌──────────────┐  │
-│  │ Request  │───▶│ Response │───▶│ Router │───▶│ Static Files │  │
-│  │ Parser   │    │ Builder  │    │        │    │ + Uploads    │  │
-│  └──────────┘    └──────────┘    └───┬────┘    └──────────────┘  │
-│                                      │                            │
-└──────────────────────────────────────┼────────────────────────────┘
-                                       │
-                                       ▼
-┌───────────────────────────────────────────────────────────────────┐
-│                        MEMBER C                                    │
-│  ┌──────────┐    ┌──────────┐    ┌─────────────┐    ┌──────────┐ │
-│  │ Cookies  │───▶│ Sessions │    │ Error Pages │    │   CGI    │ │
-│  └──────────┘    └──────────┘    └─────────────┘    │ Handler  │ │
-│                                                      └──────────┘ │
-│                         ┌──────────────────────┐                  │
-│                         │ Integration & Testing │                  │
-│                         └──────────────────────┘                  │
-└───────────────────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────┐
+│                        MEMBER A                                   │
+│  ┌──────────┐   ┌──────────┐   ┌─────────┐   ┌────────┐         │
+│  │ Project  │──▶│  Config  │──▶│ Request │──▶│Response│         │
+│  │ Structure│   │  Loader  │   │ Parser  │   │Builder │         │
+│  └──────────┘   └────┬─────┘   └────┬────┘   └───┬────┘         │
+│                      │              │            │              │
+│                      ▼              ▼            ▼              │
+│                 ┌────────┐      ┌────────┐  ┌──────────┐       │
+│                 │ Server │─────▶│ Router │─▶│  Static  │       │
+│                 │ (NIO)  │      │        │  │  Files   │       │
+│                 └───┬────┘      └───┬────┘  └──────────┘       │
+│                     │               │                          │
+│                     ▼               │                          │
+│                 ┌──────────┐        │                          │
+│                 │ Multiple │        │                          │
+│                 │ Servers  │        │                          │
+│                 └──────────┘        │                          │
+└─────────────────────────────────────┼──────────────────────────┘
+                                      │
+                                      ▼
+┌──────────────────────────────────────────────────────────────────┐
+│                        MEMBER B                                   │
+│  ┌──────────┐   ┌──────────┐   ┌─────────────┐   ┌──────────┐  │
+│  │ Cookies  │──▶│ Sessions │   │ Error Pages │   │   CGI    │  │
+│  └──────────┘   └──────────┘   └─────────────┘   │ Handler  │  │
+│                                                   └──────────┘  │
+│                 ┌──────────────┐                                │
+│                 │ File Uploads │                                │
+│                 └──────────────┘                                │
+│                                                                  │
+│                 ┌──────────────────────┐                        │
+│                 │ Integration & Testing │                        │
+│                 └──────────────────────┘                        │
+└──────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -225,15 +216,18 @@ main
 
 Shows what each member can work on simultaneously:
 
-| Phase | Member A | Member B | Member C |
-|-------|----------|----------|----------|
-| **1** | Project Structure | HTTP Request Parser | Cookie Utilities |
-| **2** | ConfigLoader | HTTP Response Builder | Session Management |
-| **3** | Server (NIO) | Router | Error Pages (HTML) |
-| **4** | Multiple Servers | Static File Serving | CGI Handler |
-| **5** | Timeout Handling | File Uploads | Error Handler |
-| **6** | Bug fixes | Bug fixes | Integration Testing |
-| **7** | Support | Support | Stress Testing (siege) |
+| Phase | Member A | Member B |
+|-------|----------|----------|
+| **1** | Project Structure | Cookie Utilities |
+| **2** | ConfigLoader | Session Management |
+| **3** | HTTP Request Parser | Error Pages (HTML) |
+| **4** | HTTP Response Builder | CGI Handler |
+| **5** | Server (NIO) | Error Handler Integration |
+| **6** | Router | File Uploads |
+| **7** | Multiple Servers | Integration Testing |
+| **8** | Static File Serving | Stress Testing (siege) |
+| **9** | Timeout Handling | Bug fixes |
+| **10** | Bug fixes | Final Testing |
 
 ---
 
@@ -243,7 +237,7 @@ Each task is complete when:
 
 - [ ] Code compiles without errors
 - [ ] Unit tests pass (if applicable)
-- [ ] Code reviewed by at least one other member
+- [ ] Code reviewed by the other member
 - [ ] Integrated with dependent components
 - [ ] No memory leaks detected
 - [ ] Documentation updated
