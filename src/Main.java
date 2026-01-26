@@ -13,6 +13,7 @@ public class Main {
             
             // STEP 2: Create server instance with configuration
             Server server = new Server(config);
+            System.err.println("server created ==>" + server.toString().formatted());
             
             // STEP 3: Start the server (this will block)
             server.start();
