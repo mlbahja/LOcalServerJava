@@ -9,14 +9,13 @@ import java.util.*;
 import java.util.concurrent.*;
 
 public class Server {
-   // private Config config;  // Server configuration
    private ConfigLoader.Config config;
 
-    private Selector selector;  // NIO selector for event-driven I/O
-    private Map<SocketChannel, ClientContext> clientContexts; // Track client state
-    private Router router;  // Request router
-    private ExecutorService cgiExecutor;  // Thread pool for CGI execution
-    private volatile boolean running;  // Server running flag
+    private Selector selector;  
+    private Map<SocketChannel, ClientContext> clientContexts; 
+    private Router router;  
+    private ExecutorService cgiExecutor; 
+    private volatile boolean running; 
     
     public Server(ConfigLoader.Config config) {
         this.config = config;
@@ -25,17 +24,15 @@ public class Server {
         this.cgiExecutor = Executors.newCachedThreadPool();
     }
     
-    // Start the server
     public void start() throws IOException {
         selector = Selector.open();
         running = true;
         
         System.out.println("Starting HTTP Server...");
         
-        // STEP 1: Open server sockets for all configured ports
         for (int port : config.getPorts()) {
             ServerSocketChannel serverChannel = ServerSocketChannel.open();
-            serverChannel.configureBlocking(false);  // Non-blocking mode
+            serverChannel.configureBlocking(false);  
             serverChannel.socket().bind(new InetSocketAddress(config.getHost(), port));
             serverChannel.register(selector, SelectionKey.OP_ACCEPT);
             System.out.println("  Listening on " + config.getHost() + ":" + port);
@@ -43,14 +40,10 @@ public class Server {
         
         System.out.println("Server ready. Press Ctrl+C to stop.");
         
-        // STEP 2: Main event loop
         while (running) {
             try {
-                // Wait for events with timeout
                 selector.select(config.getRequestTimeout());
-                
-                // Process all ready events
-                Set<SelectionKey> selectedKeys = selector.selectedKeys();
+                                Set<SelectionKey> selectedKeys = selector.selectedKeys();
                 Iterator<SelectionKey> iter = selectedKeys.iterator();
                 
                 while (iter.hasNext()) {
@@ -61,7 +54,6 @@ public class Server {
                         continue;
                     }
                     
-                    // Handle different event types
                     if (key.isAcceptable()) {
                         acceptConnection(key);
                     } else if (key.isReadable()) {
@@ -71,38 +63,32 @@ public class Server {
                     }
                 }
                 
-                // STEP 3: Cleanup timed out connections
                 cleanupTimeoutConnections();
                 
             } catch (IOException e) {
                 System.err.println("Error in selector loop: " + e.getMessage());
                 e.printStackTrace();
             } catch (ClosedSelectorException e) {
-                // Selector closed, normal shutdown
                 break;
             }
         }
     }
     
-    // Handle new client connection
     private void acceptConnection(SelectionKey key) throws IOException {
         ServerSocketChannel serverChannel = (ServerSocketChannel) key.channel();
         SocketChannel clientChannel = serverChannel.accept();
         clientChannel.configureBlocking(false);
         
-        // Create context to track this client's state
         ClientContext context = new ClientContext();
         context.startTime = System.currentTimeMillis();
         context.lastActivityTime = context.startTime;
         clientContexts.put(clientChannel, context);
         
-        // Register for read operations
         clientChannel.register(selector, SelectionKey.OP_READ, context);
         
         System.out.println("New connection from: " + clientChannel.getRemoteAddress());
     }
     
-    // Read data from client
     private void readData(SelectionKey key) throws IOException {
         SocketChannel clientChannel = (SocketChannel) key.channel();
         ClientContext context = (ClientContext) key.attachment();
@@ -113,13 +99,11 @@ public class Server {
         try {
             bytesRead = clientChannel.read(buffer);
         } catch (IOException e) {
-            // Client disconnected unexpectedly
             closeClient(clientChannel, key);
             return;
         }
         
         if (bytesRead == -1) {
-            // Client disconnected gracefully
             closeClient(clientChannel, key);
             return;
         }
@@ -129,21 +113,16 @@ public class Server {
             byte[] data = new byte[buffer.remaining()];
             buffer.get(data);
             
-            // Append to request buffer
             context.appendRequestData(data);
             context.lastActivityTime = System.currentTimeMillis();
             
-            // Check if we have a complete HTTP request
             if (context.hasCompleteRequest()) {
-                // Process the request
                 processRequest(clientChannel, context);
-                // Switch to write mode to send response
                 key.interestOps(SelectionKey.OP_WRITE);
             }
         }
     }
     
-    // Write data to client
     private void writeData(SelectionKey key) throws IOException {
         SocketChannel clientChannel = (SocketChannel) key.channel();
         ClientContext context = (ClientContext) key.attachment();
@@ -155,9 +134,8 @@ public class Server {
                 int bytesWritten = clientChannel.write(buffer);
                 
                 if (bytesWritten > 0 && !buffer.hasRemaining()) {
-                    // Response fully sent
+                  
                     if (context.keepAlive) {
-                        // Reset for next request (keep-alive)
                         context.reset();
                         key.interestOps(SelectionKey.OP_READ);
                     } else {
@@ -170,13 +148,10 @@ public class Server {
         }
     }
     
-    // Process a complete HTTP request
     private void processRequest(SocketChannel clientChannel, ClientContext context) {
         try {
-            // Parse the HTTP request
             HttpRequest request = context.getHttpRequest();
             
-            // Check if body exceeds size limit
             if (request.getBody().length > config.getClientBodySizeLimit()) {
                 context.responseData = HttpResponse.errorResponse(
                     413, "Payload Too Large",
@@ -185,11 +160,9 @@ public class Server {
                 return;
             }
             
-            // Find matching route
             Router.RouteMatch match = router.match(request);
             
             if (match == null) {
-                // No route found - 404 Not Found
                 context.responseData = HttpResponse.errorResponse(
                     404, "Not Found",
                     config.getErrorPages().get(404)
@@ -197,7 +170,6 @@ public class Server {
                 return;
             }
             
-            // Handle based on route type
             switch (match.getType()) {
                 case REDIRECT:
                     handleRedirect(context, match.getRoute());
@@ -226,7 +198,6 @@ public class Server {
         }
     }
     
-    // Handle HTTP redirect
     private void handleRedirect(ClientContext context, ConfigLoader.Route route) {
         HttpResponse response = new HttpResponse();
         response.setStatus(301, "Moved Permanently");
@@ -235,7 +206,6 @@ public class Server {
         context.responseData = response.build();
     }
     
-    // Serve static file
     private void handleStaticFile(ClientContext context, ConfigLoader.Route route, HttpRequest request) {
         String filePath = router.resolveFilePath(route, request.getPath());
         
@@ -243,9 +213,7 @@ public class Server {
             java.nio.file.Path path = java.nio.file.Paths.get(filePath);
             
             if (java.nio.file.Files.isDirectory(path)) {
-                // Directory requested
                 if (route.isDirectoryListing()) {
-                    // Generate directory listing
                     byte[] listing = router.generateDirectoryListing(
                         filePath, request.getPath()
                     );
@@ -260,21 +228,18 @@ public class Server {
                         ).build();
                     }
                 } else {
-                    // Directory listing not allowed
                     context.responseData = HttpResponse.errorResponse(
                         403, "Forbidden",
                         config.getErrorPages().get(403)
                     ).build();
                 }
             } else if (java.nio.file.Files.exists(path)) {
-                // File exists - serve it
                 byte[] fileContent = java.nio.file.Files.readAllBytes(path);
                 HttpResponse response = new HttpResponse();
                 response.setBody(fileContent);
                 response.setHeader("Content-Type", router.getMimeType(filePath));
                 context.responseData = response.build();
             } else {
-                // File not found
                 context.responseData = HttpResponse.errorResponse(
                     404, "Not Found",
                     config.getErrorPages().get(404)
@@ -289,17 +254,14 @@ public class Server {
         }
     }
     
-    // Handle CGI request (stub - Member B will implement)
     private void handleCgiRequest(ClientContext context, ConfigLoader.Route route, HttpRequest request) {
-        // This will be implemented by Member B
-        // For now, return 501 Not Implemented
+     
         HttpResponse response = new HttpResponse();
         response.setStatus(501, "Not Implemented");
         response.setBody("CGI support not yet implemented");
         context.responseData = response.build();
     }
     
-    // Clean up connections that have timed out
     private void cleanupTimeoutConnections() {
         long currentTime = System.currentTimeMillis();
         long timeout = config.getRequestTimeout();
@@ -315,7 +277,6 @@ public class Server {
                 try {
                     entry.getKey().close();
                 } catch (IOException e) {
-                    // Ignore during cleanup
                 }
                 iter.remove();
                 System.out.println("Connection timeout: " + entry.getKey());
@@ -323,19 +284,16 @@ public class Server {
         }
     }
     
-    // Close client connection
     private void closeClient(SocketChannel clientChannel, SelectionKey key) {
         try {
             key.cancel();
             clientChannel.close();
         } catch (IOException e) {
-            // Ignore during close
         }
         clientContexts.remove(clientChannel);
         System.out.println("Connection closed: " + clientChannel);
     }
     
-    // Stop the server
     public void stop() {
         running = false;
         try {
@@ -360,63 +318,55 @@ public class Server {
         System.out.println("Server stopped.");
     }
     
-    // Inner class to track client state
+ 
     private class ClientContext {
-        private ByteArrayOutputStream requestBuffer;  // Accumulated request data
-        private byte[] responseData;                  // Response to send
-        private long startTime;                       // Connection start time
-        private long lastActivityTime;                // Last I/O activity
-        private boolean keepAlive;                    // HTTP keep-alive flag
+        private ByteArrayOutputStream requestBuffer;  
+        private byte[] responseData;                  
+        private long startTime;                      
+        private long lastActivityTime;               
+        private boolean keepAlive;                   
         
         public ClientContext() {
             this.requestBuffer = new ByteArrayOutputStream();
             this.startTime = System.currentTimeMillis();
             this.lastActivityTime = this.startTime;
-            this.keepAlive = false; // Default to close connection
+            this.keepAlive = false; 
         }
         
-        // Append incoming data to request buffer
         public void appendRequestData(byte[] data) {
             requestBuffer.write(data, 0, data.length);
         }
         
-        // Check if we have a complete HTTP request
         public boolean hasCompleteRequest() {
             byte[] data = requestBuffer.toByteArray();
             String requestStr = new String(data, java.nio.charset.StandardCharsets.UTF_8);
             
-            // Find end of headers
             int headerEnd = requestStr.indexOf("\r\n\r\n");
             if (headerEnd == -1) {
-                return false; // Headers not complete
+                return false; 
             }
             
-            // Check Content-Length header
             String headers = requestStr.substring(0, headerEnd);
             int contentLength = 0;
             
-            // Look for Content-Length header
             for (String line : headers.split("\r\n")) {
                 if (line.toLowerCase().startsWith("content-length:")) {
                     try {
                         contentLength = Integer.parseInt(line.substring(15).trim());
                     } catch (NumberFormatException e) {
-                        return false; // Invalid Content-Length
+                        return false; 
                     }
                     break;
                 }
             }
             
-            // Check if we have received the complete body
             int bodyStart = headerEnd + 4; // Skip \r\n\r\n
             return data.length >= bodyStart + contentLength;
         }
         
-        // Parse the complete request
         public HttpRequest getHttpRequest() {
             byte[] data = requestBuffer.toByteArray();
             
-            // Check for chunked encoding
             String requestStr = new String(data, java.nio.charset.StandardCharsets.UTF_8);
             if (requestStr.contains("Transfer-Encoding: chunked")) {
                 return HttpRequest.parseChunkedRequest(data);
@@ -425,7 +375,6 @@ public class Server {
             }
         }
         
-        // Reset for next request (keep-alive)
         public void reset() {
             requestBuffer.reset();
             responseData = null;

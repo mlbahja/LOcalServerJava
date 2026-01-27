@@ -12,9 +12,9 @@ public class HttpRequest {
     private Map<String, String> cookies;  
     private Map<String, String> queryParams; 
     private byte[] body;         
-    private boolean isChunked;    // Chunked transfer encoding
+    private boolean isChunked;  
     
-    // Constructor: parse raw HTTP request bytes
+
     public HttpRequest(byte[] rawRequest) {
         this.headers = new HashMap<>();
         this.cookies = new HashMap<>();
@@ -22,7 +22,6 @@ public class HttpRequest {
         parseRequest(rawRequest);
     }
     
-    // Main parsing method
     private void parseRequest(byte[] rawRequest) {
         String requestStr = new String(rawRequest, StandardCharsets.UTF_8);
         String[] lines = requestStr.split("\r\n");
@@ -32,7 +31,7 @@ public class HttpRequest {
         String[] requestLine = lines[0].split(" ");
         if (requestLine.length >= 3) {
             this.method = requestLine[0];
-            parsePathAndQuery(requestLine[1]); // Extract path and query params
+            parsePathAndQuery(requestLine[1]);                                          
             this.version = requestLine[2];
         }
         

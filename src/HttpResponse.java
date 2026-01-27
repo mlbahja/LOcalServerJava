@@ -9,46 +9,38 @@ public class HttpResponse {
     private String statusMessage;          
     private Map<String, String> headers;   
     private byte[] body;                  
-    // Removed: private List<Cookie> cookies; // We'll add this later
-    
+     
    
     public HttpResponse() {
         this.headers = new HashMap<>();
         // Removed: this.cookies = new ArrayList<>();
         this.statusCode = 200;
         this.statusMessage = "OK";
-        setDefaultHeaders(); // Add standard headers
+        setDefaultHeaders();
     }
     
-    // Set standard HTTP headers
     private void setDefaultHeaders() {
         headers.put("Server", "Java-HTTP-Server/1.0");
-        headers.put("Date", getCurrentDate()); // Current date in HTTP format
-        headers.put("Connection", "close"); // Close connection after response
+        headers.put("Date", getCurrentDate()); 
+        headers.put("Connection", "close"); 
     }
     
-    // Set HTTP status code and message
     public void setStatus(int code, String message) {
         this.statusCode = code;
         this.statusMessage = message;
     }
     
-    // Add or modify a header
     public void setHeader(String key, String value) {
         headers.put(key, value);
     }
     
-    // Set response body as byte array
     public void setBody(byte[] body) {
         this.body = body;
-        // Automatically set Content-Length header
         headers.put("Content-Length", String.valueOf(body.length));
     }
     
-    // Set response body as string (converts to bytes)
     public void setBody(String body) {
         setBody(body.getBytes(StandardCharsets.UTF_8));
-        // Default to HTML content type for string bodies
         headers.put("Content-Type", "text/html; charset=utf-8");
     }
     
@@ -78,7 +70,7 @@ public class HttpResponse {
                     .append("\r\n");
         }
         
-        // STEP 3: Cookies - REMOVED FOR NOW
+       
         /*
         for (Cookie cookie : cookies) {
             response.append("Set-Cookie: ")
