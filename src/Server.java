@@ -9,14 +9,16 @@ import java.util.*;
 import java.util.concurrent.*;
 
 public class Server {
-    private Config config;  // Server configuration
+   // private Config config;  // Server configuration
+   private ConfigLoader.Config config;
+
     private Selector selector;  // NIO selector for event-driven I/O
     private Map<SocketChannel, ClientContext> clientContexts; // Track client state
     private Router router;  // Request router
     private ExecutorService cgiExecutor;  // Thread pool for CGI execution
     private volatile boolean running;  // Server running flag
     
-    public Server(Config config) {
+    public Server(ConfigLoader.Config config) {
         this.config = config;
         this.clientContexts = new ConcurrentHashMap<>();
         this.router = new Router(config.getRoutes());
@@ -225,7 +227,7 @@ public class Server {
     }
     
     // Handle HTTP redirect
-    private void handleRedirect(ClientContext context, Route route) {
+    private void handleRedirect(ClientContext context, ConfigLoader.Route route) {
         HttpResponse response = new HttpResponse();
         response.setStatus(301, "Moved Permanently");
         response.setHeader("Location", route.getRedirect());
@@ -234,7 +236,7 @@ public class Server {
     }
     
     // Serve static file
-    private void handleStaticFile(ClientContext context, Route route, HttpRequest request) {
+    private void handleStaticFile(ClientContext context, ConfigLoader.Route route, HttpRequest request) {
         String filePath = router.resolveFilePath(route, request.getPath());
         
         try {
@@ -288,7 +290,7 @@ public class Server {
     }
     
     // Handle CGI request (stub - Member B will implement)
-    private void handleCgiRequest(ClientContext context, Route route, HttpRequest request) {
+    private void handleCgiRequest(ClientContext context, ConfigLoader.Route route, HttpRequest request) {
         // This will be implemented by Member B
         // For now, return 501 Not Implemented
         HttpResponse response = new HttpResponse();
