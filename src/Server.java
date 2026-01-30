@@ -10,7 +10,6 @@ import java.util.concurrent.*;
 
 public class Server {
    private ConfigLoader.Config config;
-
     private Selector selector;  
     private Map<SocketChannel, ClientContext> clientContexts; 
     private Router router;  

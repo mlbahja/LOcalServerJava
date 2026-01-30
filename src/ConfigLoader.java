@@ -70,11 +70,11 @@ public class ConfigLoader {
         String jsonContent = readFileContent(configPath);
         //System.out.println("Parsing configuration file: " + configPath + "jsonContent ==> " + jsonContent);
         Map<String, Object> jsonMap = parseJsonManually(jsonContent);
-        System.out.println("Parsed JSON Map: " + jsonMap);
-        for (Object elem : jsonMap.entrySet()) {
-            System.out.println("Element: " + elem.toString());
+        //System.out.println("Parsed JSON Map: " + jsonMap);
+        // for (Object elem : jsonMap.entrySet()) {
+        //     System.out.println("Element: " + elem.toString());
             
-        }
+        // }
         Config config = mapToConfig(jsonMap);
         
         applyDefaults(config);
@@ -98,7 +98,11 @@ public class ConfigLoader {
     private static Map<String, Object> parseJsonManually(String json) throws IOException {
         Map<String, Object> result = new HashMap<>();
         json = json.trim();
-        
+        System.out.print("Parsing JSON: " + json);
+        if (json.isEmpty()){
+            throw new IOException("Empty JSON content");
+        }
+
         if (!json.startsWith("{") || !json.endsWith("}")) {
             throw new IOException("Invalid JSON: Expected object");
         }
@@ -163,6 +167,8 @@ public class ConfigLoader {
             }
         }
         
+        System.out.println("Parsed JSON Map: " + result);
+
         return result;
     }
     
