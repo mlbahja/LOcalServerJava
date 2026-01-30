@@ -38,16 +38,13 @@ public class Router {
                 if (route.getRedirect() != null) {
                     return new RouteMatch(route, RouteMatch.Type.REDIRECT);
                 }
-                
                 if (!route.getAllowedMethods().contains(request.getMethod())) {
                     return new RouteMatch(route, RouteMatch.Type.METHOD_NOT_ALLOWED);
                 }
-                
                 if (route.getCgiExtension() != null && 
                     path.endsWith(route.getCgiExtension())) {
                     return new RouteMatch(route, RouteMatch.Type.CGI);
                 }
-                
                 return new RouteMatch(route, RouteMatch.Type.STATIC);
             }
         }
@@ -62,9 +59,7 @@ public class Router {
         if (relativePath.isEmpty() || relativePath.equals("/")) {
             relativePath = "/" + (route.getDefaultFile() != null ? route.getDefaultFile() : "");
         }
-        
         String fullPath = route.getRoot() + relativePath;
-        
         File file = new File(fullPath);
         if (file.isDirectory()) {
             if (route.getDefaultFile() != null) {
@@ -73,12 +68,10 @@ public class Router {
                     return indexFile.getPath();
                 }
             }
-            
             if (route.isDirectoryListing()) {
                 return fullPath;
             }
         }
-        
         return fullPath;
     }
     
@@ -92,6 +85,7 @@ public class Router {
     }
     
     public byte[] generateDirectoryListing(String dirPath, String requestPath) {
+        
         File dir = new File(dirPath);
         if (!dir.exists() || !dir.isDirectory()) {
             return null;

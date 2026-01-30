@@ -66,9 +66,15 @@ public class ConfigLoader {
     }
     
     public static Config load(String configPath) throws IOException {
-        String jsonContent = readFileContent(configPath);
-        Map<String, Object> jsonMap = parseJsonManually(jsonContent);
 
+        String jsonContent = readFileContent(configPath);
+        //System.out.println("Parsing configuration file: " + configPath + "jsonContent ==> " + jsonContent);
+        Map<String, Object> jsonMap = parseJsonManually(jsonContent);
+        System.out.println("Parsed JSON Map: " + jsonMap);
+        for (Object elem : jsonMap.entrySet()) {
+            System.out.println("Element: " + elem.toString());
+            
+        }
         Config config = mapToConfig(jsonMap);
         
         applyDefaults(config);
@@ -246,7 +252,7 @@ public class ConfigLoader {
         return -1;
     }
     
-         private static Config mapToConfig(Map<String, Object> map) {
+    private static Config mapToConfig(Map<String, Object> map) {
          Config config = new Config();
         
         if (map.containsKey("host")) {
@@ -514,4 +520,5 @@ public class ConfigLoader {
             }
         }
     }
+
 }
