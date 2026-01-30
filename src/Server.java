@@ -29,7 +29,6 @@ public class Server {
         running = true;
         
         System.out.println("Starting HTTP Server...");
-        
         for (int port : config.getPorts()) {
             ServerSocketChannel serverChannel = ServerSocketChannel.open();
             serverChannel.configureBlocking(false);  

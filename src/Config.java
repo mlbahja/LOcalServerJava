@@ -1,76 +1,8 @@
-// package src;
-
-// import java.util.*;
-
-// public class Config {
-//     private String host;
-//     private List<Integer> ports;
-//     private String defaultServer;
-//     private int clientBodySizeLimit;
-//     private int requestTimeout;
-//     private Map<Integer, String> errorPages;
-//     private List<Route> routes;
-    
-//     public Config() {
-//         this.host = "localhost";
-//         this.ports = new ArrayList<>();
-//         this.errorPages = new HashMap<>();
-//         this.routes = new ArrayList<>();
-//         this.clientBodySizeLimit = 10 * 1024 * 1024; 
-//         this.requestTimeout = 30000; 
-//     }
-    
-//     public Config setHost(String host) {
-//         this.host = host;
-//         return this; 
-//     }
-    
-//     public Config addPort(int port) {
-//         this.ports.add(port);
-//         return this;
-//     }
-    
-//     public Config setDefaultServer(String defaultServer) {
-//         this.defaultServer = defaultServer;
-//         return this;
-//     }
-    
-//     public Config setClientBodySizeLimit(int limit) {
-//         this.clientBodySizeLimit = limit;
-//         return this;
-//     }
-    
-//     public Config setRequestTimeout(int timeout) {
-//         this.requestTimeout = timeout;
-//         return this;
-//     }
-    
-//     public Config addErrorPage(int code, String path) {
-//         this.errorPages.put(code, path);
-//         return this;
-//     }
-    
-//     public Config addRoute(Route route) {
-//         this.routes.add(route);
-//         return this;
-//     }
-    
-    
-//     public String getHost() { return host; }
-//     public List<Integer> getPorts() { return ports; }
-//     public String getDefaultServer() { return defaultServer; }
-//     public int getClientBodySizeLimit() { return clientBodySizeLimit; }
-//     public int getRequestTimeout() { return requestTimeout; }
-//     public Map<Integer, String> getErrorPages() { return errorPages; }
-//     public List<Route> getRoutes() { return routes; }
-// }
-
 package src;
 
 import java.util.List;
 import java.util.Map;
 
-// Public interface for configuration
 public class Config {
     private String host;
     private List<Integer> ports;
@@ -80,7 +12,6 @@ public class Config {
     private Map<Integer, String> errorPages;
     private List<Route> routes;
     
-    // Nested Route class
     public static class Route {
         private String path;
         private List<String> allowedMethods;
@@ -90,7 +21,6 @@ public class Config {
         private boolean directoryListing;
         private String redirect;
         
-        // Getters
         public String getPath() { return path; }
         public List<String> getAllowedMethods() { return allowedMethods; }
         public String getRoot() { return root; }
@@ -99,7 +29,6 @@ public class Config {
         public boolean isDirectoryListing() { return directoryListing; }
         public String getRedirect() { return redirect; }
         
-        // Setters (for ConfigLoader)
         public void setPath(String path) { this.path = path; }
         public void setAllowedMethods(List<String> allowedMethods) { this.allowedMethods = allowedMethods; }
         public void setRoot(String root) { this.root = root; }
@@ -109,7 +38,6 @@ public class Config {
         public void setRedirect(String redirect) { this.redirect = redirect; }
     }
     
-    // Getters
     public String getHost() { return host; }
     public List<Integer> getPorts() { return ports; }
     public String getDefaultServer() { return defaultServer; }
@@ -118,7 +46,6 @@ public class Config {
     public Map<Integer, String> getErrorPages() { return errorPages; }
     public List<Route> getRoutes() { return routes; }
     
-    // Setters (for ConfigLoader)
     public void setHost(String host) { this.host = host; }
     public void setPorts(List<Integer> ports) { this.ports = ports; }
     public void setDefaultServer(String defaultServer) { this.defaultServer = defaultServer; }
